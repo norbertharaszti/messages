@@ -19,6 +19,7 @@ public class Message {
 
     @DateTimeFormat(pattern = "yyyy/MM/dd HH:mm")
     private LocalDateTime creationDate;
+    private boolean deleted;
 
     public Message() {
     }
@@ -28,6 +29,15 @@ public class Message {
         this.author = author;
         this.text = text;
         this.creationDate = creationDate;
+        this.deleted = false;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
     public Long getId() {

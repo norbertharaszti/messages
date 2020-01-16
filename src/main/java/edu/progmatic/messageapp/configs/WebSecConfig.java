@@ -15,9 +15,8 @@ import org.springframework.web.filter.CharacterEncodingFilter;
 
 @EnableWebSecurity
 public class WebSecConfig extends WebSecurityConfigurerAdapter {
-
+/*
     @Bean
-    @Qualifier("registerUser")
     public UserDetailsService userDetailsService() {
         InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
         manager.createUser(User.withUsername("user").
@@ -25,7 +24,7 @@ public class WebSecConfig extends WebSecurityConfigurerAdapter {
         manager.createUser(User.withUsername("admin").
                 password("password").roles("ADMIN").build());
         return manager;
-    }
+    }*/
 
     @SuppressWarnings("deprecation")
     @Bean

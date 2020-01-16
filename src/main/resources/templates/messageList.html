@@ -18,15 +18,24 @@
         <li class="nav-item">
             <a class="nav-link" href="/showCreate">New message</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/login">Login</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/logout">Logout</a>
+        </li>
     </ul>
 </nav>
-<form method="GET" action="/messages" id="messagefilter">
+<form method="GET" action="/filtermessage" id="messagefilter">
     <input type="text" name="author" placeholder="Szerző neve"/>
     <input type="text" name="text" placeholder="Üzenet szövege"/>
-    <input type="datetime-local" name="dateFrom" placeholder="Üzenet dátuma(-tól)"/>
-    <input type="datetime-local" name="dateTo" placeholder="Üzenet dátuma(-ig)"/>
-    <input type="radio" name="orderby" value="asc"> Növekvő sorrend
+    <input type="datetime-local" name="dateFrom"/>
+    <input type="datetime-local" name="dateTo"/>
+    <input type="radio" name="orderby" value="asc" checked> Növekvő sorrend
     <input type="radio" name="orderby" value="desc"> Csökkenő sorrend
+    <div data-sec-authorize="hasRole('ADMIN')">
+    <label for="deleted">Törölt</label>
+        <input type="checkbox" name="deleted" id="deleted"  /> </div>
     <input type="submit" value="Search"/>
 </form>
 <select name="messagefilter" form="messagefilter">
@@ -34,6 +43,7 @@
     <option value="textfilter">Text</option>
     <option value="authorfilter">Author</option>
     <option value="datefilter">Date</option>
+    <option data-sec-authorize="hasRole('ADMIN')" value="deletefilter">Deleted</option>
 </select>
 
 <div class="container">
@@ -44,6 +54,7 @@
             <td>Szerző</td>
             <td>Szöveg</td>
             <td>Dátum</td>
+            <td data-sec-authorize="hasRole('ADMIN')">Törölt</td>
             <td></td>
         </tr>
         </thead>
@@ -51,7 +62,12 @@
             <td data-th-text="${msg.author}"></td>
             <td data-th-text="${msg.text}"></td>
             <td data-th-text="${{msg.creationDate}}"></td>
+            <td data-sec-authorize="hasRole('ADMIN')" data-th-text="${{msg.deleted}}"></td>
             <td><a data-th-href="@{/message/{id}(id=${msg.id})}">Részletek</a></td>
+            <td data-sec-authorize="hasRole('ADMIN')">
+                <form data-th-action="@{/message/del/{id}(id=${msg.id})}" method="POST"><input type="submit"
+                                                                                               value="Delete"></form>
+            </td>
         </tr>
     </table>
 

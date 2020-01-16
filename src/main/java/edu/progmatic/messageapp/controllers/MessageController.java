@@ -4,9 +4,11 @@ import edu.progmatic.messageapp.UserStatistics;
 import edu.progmatic.messageapp.modell.Message;
 import edu.progmatic.messageapp.modell.RegisteredUser;
 import edu.progmatic.messageapp.services.MessageService;
+import edu.progmatic.messageapp.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -25,12 +27,12 @@ import java.util.stream.Collectors;
 @Controller
 public class MessageController {
     private UserStatistics userStatistics = new UserStatistics();
-    private InMemoryUserDetailsManager userService;
+    private UserService userService;
     private MessageService messageService;
 
     @Autowired
-    public MessageController(@Qualifier("registerUser") UserDetailsService userService, MessageService messageService) {
-        this.userService = (InMemoryUserDetailsManager) userService;
+    public MessageController(UserService userService, MessageService messageService) {
+        this.userService = userService;
         this.messageService = messageService;
     }
 
@@ -45,6 +47,9 @@ public class MessageController {
             Model model) {
 
         List<Message> msgs = messageService.filterMessages(limit, orderBy, order);
+        if (!SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            msgs.removeIf(Message::isDeleted);
+        }
         model.addAttribute("msgList", msgs);
         return "messageList";
     }
@@ -53,7 +58,7 @@ public class MessageController {
     public String showOneMessage(
             @PathVariable("id") Long msgId,
             Model model) {
-        Optional<Message> message = Optional.ofNullable(messageService.getMessage(msgId));
+        Message message = messageService.getMessage(msgId);
 
         model.addAttribute("message", message);
         return "oneMessage";
@@ -61,7 +66,7 @@ public class MessageController {
 
     @PostMapping(path = "/createmessage")
     public String createMessage(@Valid @ModelAttribute("message") Message m, BindingResult bindingResult) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        RegisteredUser user = (RegisteredUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         m.setAuthor(user.getUsername());
         if (bindingResult.hasErrors()) {
             return "showCreate";
@@ -91,10 +96,13 @@ public class MessageController {
                                 @RequestParam(name = "dateFrom", defaultValue = "", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateFrom,
                                 @RequestParam(name = "dateTo", defaultValue = "", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateTo,
                                 @RequestParam(name = "orderby", defaultValue = "asc", required = false) String orderBy,
+                                @RequestParam(name = "deleted", defaultValue = "", required = false) String deleteChoose,
                                 @RequestParam(name = "messagefilter", defaultValue = "", required = false) String filterBy,
                                 Model model
     ) {
-        List<Message> msgs = messageService.filterMessages2(author, text, dateFrom, dateTo, orderBy, filterBy);
+        System.out.println(deleteChoose);
+        boolean deleted = deleteChoose.equals("on");
+        List<Message> msgs = messageService.filterMessages2(author, text, dateFrom, dateTo, orderBy, filterBy, deleted);
         model.addAttribute("msgList", msgs);
 
         return "messageList";
@@ -129,4 +137,29 @@ public class MessageController {
         userService.createUser(registeredUser);
         return "redirect:/login";
     }
+
+    @PostMapping(path = "/message/del/{id}")
+    public String deleteMessage(@PathVariable("id") Long msgId) {
+        if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            messageService.messageDelete(msgId);
+        }
+        return "redirect:/messages";
+    }
+
+    @ExceptionHandler(Exception.class)
+    public String errorsHandler(Exception ex, Model model) {
+        StringBuilder errorStack = new StringBuilder();
+        StackTraceElement[] stackTraceElement = ex.getStackTrace();
+        for (StackTraceElement traceElement : stackTraceElement) {
+            errorStack.append(traceElement.toString());
+            errorStack.append("/n");
+        }
+        model.addAttribute("exceptionMessage", errorStack);
+        model.addAttribute("errorMessage",ex.getMessage());
+        String errorMessage= ex.getMessage();
+        System.out.println(errorMessage);
+        return "error";
+    }
+
 }
+

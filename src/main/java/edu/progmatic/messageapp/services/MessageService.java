@@ -1,6 +1,8 @@
 package edu.progmatic.messageapp.services;
 
 import edu.progmatic.messageapp.modell.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -9,6 +11,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
+    private static final Logger logger= LoggerFactory.getLogger(MessageService.class);
 
     private static List<Message> messages = new ArrayList<>();
 
@@ -21,7 +24,8 @@ public class MessageService {
         messages.add(new Message("Aladár", "Adj pénzt!", LocalDateTime.now()));
     }
 
-    public List<Message> filterMessages( Integer limit, String orderBy, String order) {
+    public List<Message> filterMessages(Integer limit, String orderBy, String order) {
+
         Comparator<Message> msgComp = Comparator.comparing((Message::getCreationDate));
         switch (orderBy) {
             case "text":
@@ -40,25 +44,32 @@ public class MessageService {
             msgComp = msgComp.reversed();
         }
 
-        List<Message> msgs = messages.stream()
+        return messages.stream()
                 .sorted(msgComp)
                 .limit(limit).collect(Collectors.toList());
-
-        return msgs;
     }
+
     public Message getMessage(Long msgId) {
-        Optional<Message> message=messages.stream().filter(m->m.getId().equals(msgId)).findFirst();
+        Optional<Message> message = messages.stream().filter(m -> m.getId().equals(msgId)).findFirst();
         return message.get();
     }
-    public void createMessage(Message m){
+
+    public void createMessage(Message m) {
         m.setCreationDate(LocalDateTime.now());
         m.setId((long) messages.size());
         messages.add(m);
     }
-    public List<Message> filterMessages2(String author, String text, LocalDateTime dateFrom, LocalDateTime dateTo, String orderBy, String filterBy)
-    {
+
+    public List<Message> filterMessages2(String author, String text, LocalDateTime dateFrom, LocalDateTime dateTo,
+                                         String orderBy, String filterBy, boolean deleted) {
         List<Message> messages1 = new ArrayList<>();
+        logger.info("filterMessages start");
+        logger.debug("author: {}, filter: {}", author, filterBy);
         switch (filterBy) {
+            case "nofilter":
+                messages1.addAll(messages);
+                logger.trace("#: {}",messages1.size());
+                break;
             case "authorfilter":
                 for (Message message : messages) {
                     if (message.getAuthor().equals(author)) {
@@ -80,6 +91,16 @@ public class MessageService {
                     }
                 }
                 break;
+            case "deletefilter":
+                System.out.println(deleted);
+                for (Message message : messages) {
+                    if(deleted &&message.isDeleted()){
+                        messages1.add(message);
+                    } else if(!deleted&&!message.isDeleted()){
+                        messages1.add(message);
+                    }
+                }
+                break;
             default:
                 break;
         }
@@ -87,8 +108,16 @@ public class MessageService {
         if (orderBy.equals("desc")) {
             msgComp = msgComp.reversed();
         }
-        List<Message> msgs = messages1.stream()
+        return messages1.stream()
                 .sorted(msgComp).collect(Collectors.toList());
-        return msgs;
+    }
+
+    public void messageDelete(long msgId) {
+        for (Message message : messages) {
+            if (message.getId() == msgId) {
+                if (!message.isDeleted())
+                    message.setDeleted(true);
+            }
+        }
     }
 }
