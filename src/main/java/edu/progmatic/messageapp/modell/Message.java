@@ -2,15 +2,18 @@ package edu.progmatic.messageapp.modell;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 
+@Entity
+
 public class Message {
 
-    private static Long maxId = 0L;
-
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String author;
     @NotNull
@@ -20,12 +23,12 @@ public class Message {
     @DateTimeFormat(pattern = "yyyy/MM/dd HH:mm")
     private LocalDateTime creationDate;
     private boolean deleted;
+    @ManyToOne
+    private Topic topic;
 
     public Message() {
     }
-
     public Message(String author, String text, LocalDateTime creationDate) {
-        this.id = maxId++;
         this.author = author;
         this.text = text;
         this.creationDate = creationDate;
